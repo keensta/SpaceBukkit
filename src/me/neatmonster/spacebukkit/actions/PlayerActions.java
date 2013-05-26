@@ -14,6 +14,8 @@
  */
 package me.neatmonster.spacebukkit.actions;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import me.neatmonster.spacebukkit.players.PlayerLogger;
 import me.neatmonster.spacebukkit.utilities.Utilities;
@@ -32,6 +35,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Egg;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
@@ -82,10 +87,11 @@ public class PlayerActions implements ActionHandler {
     @Action(
             aliases = {"ban", "banPlayer", "bannedAdd"})
     public boolean ban(final String playerName) {
-        Bukkit.getOfflinePlayer(playerName).setBanned(true);
+    	Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ban " + playerName);
+/*        Bukkit.getOfflinePlayer(playerName).setBanned(true);
         final Player onlinePlayer = Bukkit.getPlayer(playerName);
         if (onlinePlayer != null)
-            onlinePlayer.kickPlayer("You have been banned!");
+            onlinePlayer.kickPlayer("You have been banned!");*/
         PlayerLogger.setCase(playerName);
         return true;
     }
@@ -159,10 +165,22 @@ public class PlayerActions implements ActionHandler {
     @Action(
             aliases = {"getBanned", "banned"})
     public List<String> getBanned() {
-        final List<String> playersNames = new ArrayList<String>();
-        for (final OfflinePlayer player : Bukkit.getBannedPlayers())
-            playersNames.add(PlayerLogger.getCase(player.getName()));
-        return playersNames;
+    	final List<String> playersNames = new ArrayList<String>();
+
+    	File banFile = new File("plugins/AbeoAdmin", "bans.yml");
+    	FileConfiguration cfg = YamlConfiguration.loadConfiguration(banFile);
+    	
+ 		if(!cfg.contains("players"))
+ 			return playersNames; //Nothing to load
+
+ 		Set<String> bans = cfg.getConfigurationSection("players").getKeys(false);
+ 		for(String bannedPlayers : bans) {
+ 			playersNames.add(PlayerLogger.getCase(bannedPlayers));
+ 		}
+
+         for (final OfflinePlayer player : Bukkit.getBannedPlayers())
+             playersNames.add(PlayerLogger.getCase(player.getName()));
+         return playersNames;
     }
 
     /**
@@ -627,7 +645,17 @@ public class PlayerActions implements ActionHandler {
     @Action(
             aliases = {"unban", "unbanPlayer", "bannedRemove"})
     public boolean unban(final String playerName) {
-        Bukkit.getOfflinePlayer(playerName).setBanned(false);
+    	File banFile = new File("plugins/AbeoAdmin", "bans.yml");
+    	FileConfiguration cfg = YamlConfiguration.loadConfiguration(banFile);
+    	
+    	Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "pardon " + playerName);
+    	cfg.set("players." + playerName, null);
+    	try {
+			cfg.save(banFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        /*Bukkit.getOfflinePlayer(playerName).setBanned(false);*/
         return true;
     }
 
